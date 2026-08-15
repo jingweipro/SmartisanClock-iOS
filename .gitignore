@@ -2,6 +2,10 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .DS_Store
+*.xcarchive
+*.ipa
+*.dSYM/
+.asc/
 
 # Other local projects and packaged builds are not part of this repository.
 Releases/
