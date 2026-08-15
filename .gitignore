@@ -1,0 +1,10 @@
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# Other local projects and packaged builds are not part of this repository.
+Releases/
+SmartisanWeatheriOS/
+SmartisanWeatherWidget/
+SmartisanWeatheriOS.xcodeproj/
