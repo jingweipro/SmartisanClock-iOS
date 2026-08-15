@@ -11,6 +11,20 @@
 
 Release 中的 `unsigned.ipa` **没有可直接安装的 Apple 签名**。使用者需要用自己的 Apple Account、开发证书和描述文件重新签名，或者直接在 Xcode 中编译安装。不要把 Apple Account 密码提交给来历不明的网站或证书服务。
 
+## 操作视频与界面预览
+
+🎬 [Bilibili 操作演示：苹果系统复刻锤子时钟](https://www.bilibili.com/video/BV1BEgu67Ewx/)
+
+视频展示了项目的主要页面与操作流程；下面是当前公开版本在 iPhone 模拟器中的界面截图。
+
+<p align="center">
+  <img src="docs/screenshots/01-alarm.png" width="250" alt="闹钟界面" />
+  <img src="docs/screenshots/02-stopwatch.png" width="250" alt="机械秒表界面" />
+  <img src="docs/screenshots/03-timer.png" width="250" alt="计时器界面" />
+</p>
+
+<p align="center"><sub>闹钟 · 机械秒表 · 计时器</sub></p>
+
 ## 系统要求
 
 - iPhone，iOS 26.0 或更高版本
