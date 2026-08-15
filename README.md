@@ -13,9 +13,9 @@ Release 中的 `unsigned.ipa` **没有可直接安装的 Apple 签名**。使用
 
 ## 操作视频与界面预览
 
-🎬 [Bilibili 操作演示：苹果系统复刻锤子时钟](https://www.bilibili.com/video/BV1BEgu67Ewx/)
+🎬 视频演示： [Bilibili](https://www.bilibili.com/video/BV1BEgu67Ewx/) · [抖音](https://v.douyin.com/M38BGGUuntM/)
 
-视频展示了项目的主要页面与操作流程；下面是当前公开版本在 iPhone 模拟器中的界面截图。
+两个视频都展示了项目的主要页面与操作流程；下面是当前公开版本在 iPhone 模拟器中的界面截图。
 
 <p align="center">
   <img src="docs/screenshots/01-world-clock.png" width="210" alt="世界时钟界面" />
