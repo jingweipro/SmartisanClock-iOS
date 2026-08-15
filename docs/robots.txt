@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jingweipro.github.io/SmartisanClock-iOS/sitemap.xml
