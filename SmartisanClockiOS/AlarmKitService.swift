@@ -24,6 +24,7 @@ final class AlarmKitService: ObservableObject {
 
     func schedule(_ item: UserAlarm) async throws {
         guard await ensureAuthorized() else { throw AlarmServiceError.notAuthorized }
+        try Task.checkCancellation()
 
         let recurrence: Alarm.Schedule.Relative.Recurrence = item.weekdays.isEmpty
             ? .never
@@ -53,10 +54,15 @@ final class AlarmKitService: ObservableObject {
             sound: .named(item.ringtoneSoundFile)
         )
         _ = try await manager.schedule(id: item.id, configuration: configuration)
+        if Task.isCancelled {
+            try? manager.cancel(id: item.id)
+            throw CancellationError()
+        }
     }
 
     func scheduleTimer(id: UUID, duration: TimeInterval) async throws {
         guard await ensureAuthorized() else { throw AlarmServiceError.notAuthorized }
+        try Task.checkCancellation()
         let stop = AlarmButton(text: "停止", textColor: .white, systemImageName: "stop.circle")
         let alert = AlarmPresentation.Alert(title: "计时结束", stopButton: stop)
         let attributes = AlarmAttributes(
@@ -70,6 +76,10 @@ final class AlarmKitService: ObservableObject {
             sound: .named("timer.wav")
         )
         _ = try await manager.schedule(id: id, configuration: configuration)
+        if Task.isCancelled {
+            try? manager.cancel(id: id)
+            throw CancellationError()
+        }
     }
 
     func cancel(id: UUID) {

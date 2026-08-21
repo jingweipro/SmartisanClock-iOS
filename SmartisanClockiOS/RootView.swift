@@ -106,7 +106,6 @@ struct RootView: View {
             default: nil
             }
             if let target { selection = target }
-            if url.host == "ringing" { showsRinging = true }
         }
     }
 }

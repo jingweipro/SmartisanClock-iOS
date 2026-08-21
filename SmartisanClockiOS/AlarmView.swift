@@ -8,6 +8,7 @@ struct AlarmView: View {
     @State private var editedAlarm: UserAlarm?
     @State private var presentsEditor = false
     @State private var message: String?
+    @State private var pendingSchedules: [UUID: Task<Void, Never>] = [:]
 
     var body: some View {
         GeometryReader { geometry in
@@ -102,10 +103,17 @@ struct AlarmView: View {
         var changed = alarm
         changed.isEnabled = enabled
         store.replace(changed)
+        let previousSchedule = pendingSchedules[changed.id]
+        previousSchedule?.cancel()
         if enabled {
-            Task {
+            pendingSchedules[changed.id] = Task {
+                await previousSchedule?.value
+                guard !Task.isCancelled,
+                      store.alarms.first(where: { $0.id == changed.id })?.isEnabled == true else { return }
                 do { try await service.schedule(changed) }
                 catch {
+                    guard !Task.isCancelled,
+                          store.alarms.first(where: { $0.id == changed.id })?.isEnabled == true else { return }
                     changed.isEnabled = false
                     store.replace(changed)
                     message = error.localizedDescription
@@ -117,6 +125,7 @@ struct AlarmView: View {
     }
 
     private func delete(_ alarm: UserAlarm) {
+        pendingSchedules[alarm.id]?.cancel()
         service.cancel(id: alarm.id)
         withAnimation(.easeOut(duration: 0.20)) { store.remove(alarm) }
     }

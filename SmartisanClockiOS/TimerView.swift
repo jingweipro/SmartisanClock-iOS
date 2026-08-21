@@ -16,6 +16,7 @@ struct TimerView: View {
     @State private var message: String?
     @State private var bounceRequest: ClassicBounceRequest?
     @State private var adjustmentWasPaused = false
+    @State private var pendingSchedule: Task<Void, Never>?
 
     private var mode: Mode { Mode(rawValue: storedMode) ?? .classic }
 
@@ -225,6 +226,7 @@ struct TimerView: View {
     private func primaryAction() {
         SmartisanHaptics.confirm()
         if running {
+            pendingSchedule?.cancel()
             remainingWhenPaused = remaining(at: Date())
             selectedMinutes = remainingWhenPaused / 60
             running = false
@@ -239,15 +241,18 @@ struct TimerView: View {
     private func start(duration: TimeInterval) {
         guard duration > 0 else { return }
         adjustmentWasPaused = false
+        pendingSchedule?.cancel()
         service.cancel(id: alarmID)
         alarmID = UUID()
+        let scheduledID = alarmID
         fireDate = Date().addingTimeInterval(duration)
         remainingWhenPaused = 0
         selectedMinutes = duration / 60
         running = true
-        Task {
-            do { try await service.scheduleTimer(id: alarmID, duration: duration) }
+        pendingSchedule = Task {
+            do { try await service.scheduleTimer(id: scheduledID, duration: duration) }
             catch {
+                guard !Task.isCancelled, alarmID == scheduledID else { return }
                 running = false
                 fireDate = nil
                 remainingWhenPaused = duration
@@ -296,6 +301,7 @@ struct TimerView: View {
         } else {
             currentDuration = selectedMinutes * 60
         }
+        pendingSchedule?.cancel()
         service.cancel(id: alarmID)
         adjustmentWasPaused = paused
         running = false
@@ -324,6 +330,7 @@ struct TimerView: View {
     }
 
     private func cancelSession() {
+        pendingSchedule?.cancel()
         service.cancel(id: alarmID)
         adjustmentWasPaused = false
         running = false
