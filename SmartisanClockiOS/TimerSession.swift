@@ -62,6 +62,53 @@ struct UserDefaultsTimerSessionStore: TimerSessionStoreProtocol {
     }
 }
 
+struct FileTimerSessionStore: TimerSessionStoreProtocol {
+    static let defaultURL = FileManager.default.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+    )[0]
+        .appendingPathComponent("SmartisanClock", isDirectory: true)
+        .appendingPathComponent("TimerSession-v1.json", isDirectory: false)
+
+    private let fileURL: URL
+    private let fileManager: FileManager
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    init(fileURL: URL = Self.defaultURL, fileManager: FileManager = .default) {
+        self.fileURL = fileURL
+        self.fileManager = fileManager
+    }
+
+    func load() -> TimerSession? {
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        do {
+            let session = try decoder.decode(TimerSession.self, from: data)
+            guard session.schemaVersion == TimerSession.currentSchemaVersion else {
+                clear()
+                return nil
+            }
+            return session
+        } catch {
+            clear()
+            return nil
+        }
+    }
+
+    func save(_ session: TimerSession) throws {
+        try fileManager.createDirectory(
+            at: fileURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try encoder.encode(session).write(to: fileURL, options: .atomic)
+    }
+
+    func clear() {
+        guard fileManager.fileExists(atPath: fileURL.path) else { return }
+        try? fileManager.removeItem(at: fileURL)
+    }
+}
+
 struct SystemTimerSnapshot: Equatable {
     enum State: Equatable {
         case scheduled

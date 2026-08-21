@@ -126,4 +126,19 @@ defaults.set(Data("not-json".utf8), forKey: key)
 expectEqual(store.load(), nil, "corrupt timer session must fail closed")
 expect(defaults.object(forKey: key) == nil, "corrupt timer data must be removed")
 
+let fileDirectory = FileManager.default.temporaryDirectory
+    .appendingPathComponent("TimerSessionTests.\(UUID().uuidString)", isDirectory: true)
+let fileURL = fileDirectory.appendingPathComponent("session.json")
+let fileStore = FileTimerSessionStore(fileURL: fileURL)
+defer { try? FileManager.default.removeItem(at: fileDirectory) }
+try fileStore.save(running)
+expectEqual(fileStore.load(), running, "atomic file session must round-trip")
+fileStore.clear()
+expectEqual(fileStore.load(), nil, "file clear must remove persisted timer session")
+
+try FileManager.default.createDirectory(at: fileDirectory, withIntermediateDirectories: true)
+try Data("not-json".utf8).write(to: fileURL)
+expectEqual(fileStore.load(), nil, "corrupt file session must fail closed")
+expect(!FileManager.default.fileExists(atPath: fileURL.path), "corrupt session file must be removed")
+
 print("TimerSessionTests passed")

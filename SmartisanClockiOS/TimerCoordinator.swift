@@ -22,11 +22,12 @@ final class TimerCoordinator: ObservableObject {
     private let service: any TimerSystemClient
     private let store: any TimerSessionStoreProtocol
     private var schedulingTask: Task<Void, Never>?
+    private var schedulingAlarmIDs = Set<UUID>()
     private var isReconciling = false
 
     init(
         service: any TimerSystemClient,
-        store: any TimerSessionStoreProtocol = UserDefaultsTimerSessionStore()
+        store: any TimerSessionStoreProtocol = FileTimerSessionStore()
     ) {
         self.service = service
         self.store = store
@@ -83,8 +84,10 @@ final class TimerCoordinator: ObservableObject {
             return
         }
 
+        schedulingAlarmIDs.insert(pending.alarmID)
         schedulingTask = Task { [weak self] in
             guard let self else { return }
+            defer { schedulingAlarmIDs.remove(pending.alarmID) }
             do {
                 try await service.scheduleTimer(id: pending.alarmID, duration: duration)
                 try Task.checkCancellation()
@@ -174,6 +177,7 @@ final class TimerCoordinator: ObservableObject {
     }
 
     func reconcile(ordinaryAlarmIDs: Set<UUID>, now: Date = Date()) async {
+        guard schedulingAlarmIDs.isEmpty else { return }
         guard !isReconciling else { return }
         isReconciling = true
         defer { isReconciling = false }

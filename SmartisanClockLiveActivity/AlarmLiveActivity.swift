@@ -6,6 +6,7 @@ import WidgetKit
 
 private enum LiveClockPalette {
     static let red = Color(red: 0.82, green: 0.19, blue: 0.17)
+    static let islandRed = Color(red: 0.98, green: 0.30, blue: 0.26)
     static let graphite = Color(white: 0.31)
     static let secondary = Color(white: 0.55)
     static let paper = Color(white: 0.98)
@@ -35,7 +36,7 @@ struct SmartisanAlarmLiveActivity: Widget {
                             .foregroundStyle(.white.opacity(0.76))
                         countdownText(context.state)
                             .font(.system(size: 24, weight: .medium, design: .rounded))
-                            .foregroundStyle(LiveClockPalette.red)
+                            .foregroundStyle(LiveClockPalette.islandRed)
                     }
                     .padding(.trailing, 4)
                 }
@@ -61,14 +62,14 @@ struct SmartisanAlarmLiveActivity: Widget {
             } compactTrailing: {
                 countdownText(context.state)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(LiveClockPalette.red)
+                    .foregroundStyle(LiveClockPalette.islandRed)
                     .frame(maxWidth: 58)
             } minimal: {
                 LiveMechanicalDial(mode: context.state.mode)
                     .frame(width: 22, height: 22)
                     .accessibilityLabel(Text(statusText(context.state.mode)))
             }
-            .keylineTint(LiveClockPalette.red)
+            .keylineTint(LiveClockPalette.islandRed)
             .widgetURL(URL(string: "smartisanclock://timer"))
         }
     }
@@ -267,6 +268,6 @@ private struct AlarmIntentButton<Intent: AppIntent>: View {
         }
         .buttonStyle(.borderedProminent)
         .tint(tint)
-        .frame(width: compact ? 82 : 92, height: 32)
+        .frame(width: compact ? 82 : 92, height: 44)
     }
 }
