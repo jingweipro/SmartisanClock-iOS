@@ -48,6 +48,7 @@ final class AlarmKitService: ObservableObject {
             countdownDuration: .init(preAlert: nil, postAlert: 10 * 60),
             schedule: schedule,
             attributes: attributes,
+            stopIntent: StopTimerIntent(alarmID: item.id.uuidString),
             sound: .named(item.ringtoneSoundFile)
         )
         _ = try await manager.schedule(id: item.id, configuration: configuration)
@@ -76,6 +77,7 @@ final class AlarmKitService: ObservableObject {
         let configuration = AlarmManager.AlarmConfiguration.timer(
             duration: duration,
             attributes: attributes,
+            stopIntent: StopTimerIntent(alarmID: id.uuidString),
             sound: .named("timer.wav")
         )
         _ = try await manager.schedule(id: id, configuration: configuration)
