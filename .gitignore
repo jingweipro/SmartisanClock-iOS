@@ -6,6 +6,7 @@ xcuserdata/
 *.ipa
 *.dSYM/
 .asc/
+.worktrees/
 
 # Other local projects and packaged builds are not part of this repository.
 Releases/
