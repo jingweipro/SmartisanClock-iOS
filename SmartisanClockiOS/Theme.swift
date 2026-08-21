@@ -115,12 +115,21 @@ final class SmartisanSoundEffects {
 }
 
 enum SmartisanHaptics {
+    private static let tickGenerator = UIImpactFeedbackGenerator(style: .light)
+    private static let confirmGenerator = UIImpactFeedbackGenerator(style: .rigid)
+
+    static func prepareTick() {
+        tickGenerator.prepare()
+    }
+
     static func tick() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.65)
+        tickGenerator.impactOccurred(intensity: 0.65)
+        tickGenerator.prepare()
     }
 
     static func confirm() {
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.75)
+        confirmGenerator.impactOccurred(intensity: 0.75)
+        confirmGenerator.prepare()
     }
 }
 

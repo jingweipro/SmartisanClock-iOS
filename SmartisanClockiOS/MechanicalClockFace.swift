@@ -20,7 +20,7 @@ struct MechanicalClockFace: View {
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 60, paused: !isActive)) { timeline in
-            Canvas(opaque: false, colorMode: .nonLinear, rendersAsynchronously: true) { context, _ in
+            Canvas(opaque: false, colorMode: .nonLinear, rendersAsynchronously: mode != .timer) { context, _ in
                 drawClock(context: &context, timelineDate: timeline.date)
             }
         }

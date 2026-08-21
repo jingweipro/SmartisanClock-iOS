@@ -17,6 +17,7 @@ struct TimerView: View {
     @State private var bounceRequest: ClassicBounceRequest?
     @State private var adjustmentWasPaused = false
     @State private var pendingSchedule: Task<Void, Never>?
+    @State private var rulerPreviewMinutes: Double?
 
     private var mode: Mode { Mode(rawValue: storedMode) ?? .classic }
 
@@ -33,7 +34,7 @@ struct TimerView: View {
             return Double(arguments[index + 1])
         }
         let initialMinutes = runningMinutes ?? previewMinutes ?? 0
-        _selectedMinutes = State(initialValue: min(180, max(0, initialMinutes)))
+        _selectedMinutes = State(initialValue: min(Double(TimerRulerPolicy.modernMaximumMinutes), max(0, initialMinutes)))
         _running = State(initialValue: runningMinutes != nil)
         _fireDate = State(initialValue: runningMinutes.map { Date().addingTimeInterval(max(0, $0) * 60) })
     }
@@ -41,49 +42,46 @@ struct TimerView: View {
     var body: some View {
         GeometryReader { geometry in
             let canvasHeight = layoutHeight ?? geometry.size.height
-            TimelineView(.animation(minimumInterval: 1 / 60, paused: !running || !isActive)) { timeline in
-                let remaining = remaining(at: timeline.date)
-                let displayMinutes = (running || remainingWhenPaused > 0) ? remaining / 60 : selectedMinutes
+            ZStack(alignment: .top) {
+                TimelineView(.animation(minimumInterval: 1 / 60, paused: !running || !isActive)) { timeline in
+                    let remaining = remaining(at: timeline.date)
+                let timerMinutes = (running || remainingWhenPaused > 0) ? remaining / 60 : selectedMinutes
+                let displayMinutes = rulerPreviewMinutes ?? timerMinutes
 
-                ZStack(alignment: .top) {
-                    ClockTheme.background
+                    ZStack(alignment: .top) {
+                        ClockTheme.background
 
-                    MechanicalClockFace(
-                        mode: .timer,
-                        timerMinutes: displayMinutes,
-                        isActive: isActive
-                    )
-                    .position(x: geometry.size.width / 2, y: 266)
-
-                    if mode == .classic {
-                        classicSurface(width: geometry.size.width, height: canvasHeight, remaining: remaining, displayMinutes: displayMinutes)
-                    } else {
-                        modernSurface(width: geometry.size.width, height: canvasHeight, remaining: remaining, displayMinutes: displayMinutes)
-                    }
-
-                    SmartisanTitleBar(
-                        title: "计时器",
-                        trailing: SmartisanBarAction(
-                            image: "icon_setting_normal.png",
-                            pressedImage: "icon_setting_pressed.png",
-                            disabledImage: "icon_setting_disabled.png",
-                            enabled: !running && remainingWhenPaused == 0,
-                            accessibilityLabel: "计时器样式",
-                            action: { showsStylePicker = true }
+                        MechanicalClockFace(
+                            mode: .timer,
+                            timerMinutes: displayMinutes,
+                            isActive: isActive
                         )
-                    )
+                        .position(x: geometry.size.width / 2, y: 266)
 
-                    if showsStylePicker {
-                        TimerStylePicker(mode: mode) { selected in
-                            storedMode = selected.rawValue
-                            selectedMinutes = 0
-                            showsStylePicker = false
-                        } dismiss: {
-                            showsStylePicker = false
+                        if mode == .classic {
+                            classicSurface(width: geometry.size.width, height: canvasHeight, remaining: remaining, displayMinutes: displayMinutes)
+                        } else {
+                            modernSurface(width: geometry.size.width, height: canvasHeight, remaining: remaining, displayMinutes: displayMinutes)
                         }
-                        .transition(.opacity)
-                        .zIndex(10)
                     }
+                }
+
+                TimerHeader(
+                    enabled: !running && remainingWhenPaused == 0,
+                    showsStylePicker: $showsStylePicker
+                )
+                .equatable()
+
+                if showsStylePicker {
+                    TimerStylePicker(mode: mode) { selected in
+                        storedMode = selected.rawValue
+                        selectedMinutes = 0
+                        showsStylePicker = false
+                    } dismiss: {
+                        showsStylePicker = false
+                    }
+                    .transition(.opacity)
+                    .zIndex(10)
                 }
             }
         }
@@ -196,6 +194,7 @@ struct TimerView: View {
                     minutes: Binding(get: { displayMinutes }, set: { selectedMinutes = $0 }),
                     enabled: true,
                     onAdjustmentStarted: beginAdjustment,
+                    onPreview: { rulerPreviewMinutes = $0 },
                     onRelease: { commitModernAdjustment(Double($0)) }
                 )
                 .frame(maxWidth: .infinity)
@@ -262,7 +261,7 @@ struct TimerView: View {
     }
 
     private func commitClassicAdjustment(_ minutes: Double) {
-        let whole = floor(min(max(minutes, 0), 60))
+        let whole = floor(min(max(minutes, 0), Double(TimerRulerPolicy.classicMaximumMinutes)))
         selectedMinutes = whole
         guard whole > 0 else {
             adjustmentWasPaused = false
@@ -277,7 +276,7 @@ struct TimerView: View {
     }
 
     private func commitModernAdjustment(_ minutes: Double) {
-        let whole = min(max(minutes.rounded(), 0), 180)
+        let whole = min(max(minutes.rounded(), 0), Double(TimerRulerPolicy.modernMaximumMinutes))
         selectedMinutes = whole
         guard whole > 0 else {
             adjustmentWasPaused = false
@@ -557,20 +556,24 @@ private struct HorizontalTimerRuler: View {
     @Binding var minutes: Double
     let enabled: Bool
     let onAdjustmentStarted: () -> Void
+    let onPreview: (Double?) -> Void
     let onRelease: (Int) -> Void
     @State private var position: CGFloat = 0
     @State private var startPosition: CGFloat?
     @State private var lastBucket = 0
+    @State private var lastPublishedMinute = 0
     private let pixelsPerMinute: CGFloat = 70 / 3
 
-    init(minutes: Binding<Double>, enabled: Bool, onAdjustmentStarted: @escaping () -> Void, onRelease: @escaping (Int) -> Void) {
+    init(minutes: Binding<Double>, enabled: Bool, onAdjustmentStarted: @escaping () -> Void, onPreview: @escaping (Double?) -> Void, onRelease: @escaping (Int) -> Void) {
         _minutes = minutes
         self.enabled = enabled
         self.onAdjustmentStarted = onAdjustmentStarted
+        self.onPreview = onPreview
         self.onRelease = onRelease
-        let initial = min(180, max(0, minutes.wrappedValue))
+        let initial = min(Double(TimerRulerPolicy.modernMaximumMinutes), max(0, minutes.wrappedValue))
         _position = State(initialValue: CGFloat(initial) * (70 / 3))
         _lastBucket = State(initialValue: Int(floor(initial)))
+        _lastPublishedMinute = State(initialValue: Int(initial.rounded()))
     }
 
     var body: some View {
@@ -593,7 +596,7 @@ private struct HorizontalTimerRuler: View {
         }
 
         let first = max(0, Int(floor(-zeroX / pixelsPerMinute)) - 1)
-        let last = min(180, Int(floor((size.width - zeroX) / pixelsPerMinute)) + 2)
+        let last = min(TimerRulerPolicy.modernMaximumMinutes, Int(floor((size.width - zeroX) / pixelsPerMinute)) + 2)
         if first <= last {
             for minute in first...last {
                 let x = zeroX + CGFloat(minute) * pixelsPerMinute
@@ -621,27 +624,51 @@ private struct HorizontalTimerRuler: View {
                     onAdjustmentStarted()
                     startPosition = position
                     lastBucket = Int(floor(position / pixelsPerMinute))
+                    lastPublishedMinute = TimerRulerPolicy.committedMinute(
+                        at: position,
+                        pixelsPerMinute: pixelsPerMinute,
+                        maximumMinutes: TimerRulerPolicy.modernMaximumMinutes
+                    )
+                    SmartisanHaptics.prepareTick()
                 }
                 guard let startPosition else { return }
                 let raw = startPosition - value.translation.width
                 position = resisted(raw)
+                onPreview(TimerRulerPolicy.minute(
+                    at: position,
+                    pixelsPerMinute: pixelsPerMinute,
+                    maximumMinutes: TimerRulerPolicy.modernMaximumMinutes
+                ))
                 let bucket = Int(floor(position / pixelsPerMinute))
                 if bucket != lastBucket {
                     lastBucket = bucket
                     SmartisanHaptics.tick()
                 }
-                minutes = Double(min(180, max(0, position / pixelsPerMinute)).rounded())
+                if let changedMinute = TimerRulerPolicy.changedMinute(
+                    previous: lastPublishedMinute,
+                    position: position,
+                    pixelsPerMinute: pixelsPerMinute,
+                    maximumMinutes: TimerRulerPolicy.modernMaximumMinutes
+                ) {
+                    lastPublishedMinute = changedMinute
+                    minutes = Double(changedMinute)
+                }
             }
             .onEnded { value in
                 guard let startPosition else { return }
                 self.startPosition = nil
                 let projected = startPosition - value.predictedEndTranslation.width
-                let bounded = min(180 * pixelsPerMinute, max(0, projected))
-                let targetMinute = Int((bounded / pixelsPerMinute).rounded())
+                let bounded = min(CGFloat(TimerRulerPolicy.modernMaximumMinutes) * pixelsPerMinute, max(0, projected))
+                let targetMinute = TimerRulerPolicy.committedMinute(
+                    at: bounded,
+                    pixelsPerMinute: pixelsPerMinute,
+                    maximumMinutes: TimerRulerPolicy.modernMaximumMinutes
+                )
                 withAnimation(.easeOut(duration: abs(value.predictedEndTranslation.width - value.translation.width) > 30 ? 0.78 : 0.30)) {
                     position = CGFloat(targetMinute) * pixelsPerMinute
                     minutes = Double(targetMinute)
                 }
+                onPreview(nil)
                 DispatchQueue.main.asyncAfter(deadline: .now() + (abs(value.predictedEndTranslation.width - value.translation.width) > 30 ? 1.18 : 0.40)) {
                     onRelease(targetMinute)
                 }
@@ -649,7 +676,7 @@ private struct HorizontalTimerRuler: View {
     }
 
     private func resisted(_ raw: CGFloat) -> CGFloat {
-        let maximum = 180 * pixelsPerMinute
+        let maximum = CGFloat(TimerRulerPolicy.modernMaximumMinutes) * pixelsPerMinute
         if raw < 0 { return max(-166.67, raw / (1 + abs(raw) / 20)) }
         if raw > maximum { return min(maximum + 166.67, maximum + (raw - maximum) / (1 + (raw - maximum) / 20)) }
         return raw
@@ -658,6 +685,29 @@ private struct HorizontalTimerRuler: View {
     private func drawStretch(context: inout GraphicsContext, name: String, rect: CGRect) {
         guard rect.width > 0 else { return }
         context.draw(context.resolve(Image(uiImage: SmartisanAssets.image(name))), in: rect)
+    }
+}
+
+private struct TimerHeader: View, Equatable {
+    let enabled: Bool
+    @Binding var showsStylePicker: Bool
+
+    static func == (lhs: TimerHeader, rhs: TimerHeader) -> Bool {
+        lhs.enabled == rhs.enabled && lhs.showsStylePicker == rhs.showsStylePicker
+    }
+
+    var body: some View {
+        SmartisanTitleBar(
+            title: "计时器",
+            trailing: SmartisanBarAction(
+                image: "icon_setting_normal.png",
+                pressedImage: "icon_setting_pressed.png",
+                disabledImage: "icon_setting_disabled.png",
+                enabled: enabled,
+                accessibilityLabel: "计时器样式",
+                action: { showsStylePicker = true }
+            )
+        )
     }
 }
 
