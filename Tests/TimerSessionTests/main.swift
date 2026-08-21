@@ -93,6 +93,25 @@ guard case let .restore(recovered) = recoveredPending else {
 }
 expectEqual(recovered.status, .running, "recovered transaction must commit running state")
 
+expectEqual(
+    TimerStateReducer.remaining(session: running, at: now),
+    480,
+    "running remaining time must come from fireDate"
+)
+let reducerPaused = TimerStateReducer.pause(session: running, at: now)
+expectEqual(reducerPaused.status, .paused, "pause must store paused state")
+expectEqual(reducerPaused.pausedRemaining, 480, "pause must freeze current remaining time")
+let reducerResumed = TimerStateReducer.resume(
+    session: reducerPaused,
+    at: now.addingTimeInterval(20)
+)
+expectEqual(reducerResumed.status, .running, "resume must store running state")
+expectEqual(
+    reducerResumed.fireDate,
+    now.addingTimeInterval(500),
+    "resume must create a new absolute fire date"
+)
+
 let suiteName = "TimerSessionTests.\(UUID().uuidString)"
 let defaults = UserDefaults(suiteName: suiteName)!
 defer { defaults.removePersistentDomain(forName: suiteName) }

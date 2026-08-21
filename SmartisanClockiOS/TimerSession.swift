@@ -134,3 +134,32 @@ enum TimerSessionReconciler {
         }
     }
 }
+
+enum TimerStateReducer {
+    static func remaining(session: TimerSession, at date: Date) -> TimeInterval {
+        switch session.status {
+        case .paused:
+            return max(0, session.pausedRemaining ?? 0)
+        case .scheduling, .running:
+            return max(0, session.fireDate.timeIntervalSince(date))
+        }
+    }
+
+    static func pause(session: TimerSession, at date: Date) -> TimerSession {
+        var paused = session
+        paused.status = .paused
+        paused.pausedRemaining = remaining(session: session, at: date)
+        paused.updatedAt = date
+        return paused
+    }
+
+    static func resume(session: TimerSession, at date: Date) -> TimerSession {
+        var running = session
+        let remaining = max(0, session.pausedRemaining ?? 0)
+        running.status = .running
+        running.fireDate = date.addingTimeInterval(remaining)
+        running.pausedRemaining = nil
+        running.updatedAt = date
+        return running
+    }
+}
