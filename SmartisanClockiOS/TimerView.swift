@@ -3,23 +3,23 @@ import SwiftUI
 struct TimerView: View {
     enum Mode: String { case modern, classic }
 
-    @EnvironmentObject private var service: AlarmKitService
+    @EnvironmentObject private var timer: TimerCoordinator
     let isActive: Bool
     let layoutHeight: CGFloat?
     @AppStorage("smartisan.timer.style") private var storedMode = Mode.classic.rawValue
-    @State private var selectedMinutes: Double
-    @State private var running = false
-    @State private var fireDate: Date?
-    @State private var remainingWhenPaused: TimeInterval = 0
-    @State private var alarmID = UUID()
     @State private var showsStylePicker = false
-    @State private var message: String?
     @State private var bounceRequest: ClassicBounceRequest?
-    @State private var adjustmentWasPaused = false
-    @State private var pendingSchedule: Task<Void, Never>?
+    @State private var pausedDraft = false
     @State private var rulerPreviewMinutes: Double?
+    @State private var appliedPreviewMinutes = false
+    private let initialPreviewMinutes: Double?
 
     private var mode: Mode { Mode(rawValue: storedMode) ?? .classic }
+    private var selectedMinutes: Double { timer.selectedMinutes }
+    private var running: Bool { timer.isRunning }
+    private var fireDate: Date? { timer.fireDate }
+    private var remainingWhenPaused: TimeInterval { timer.remainingWhenPaused }
+    private var showsTimerControls: Bool { running || timer.isPaused || pausedDraft }
 
     init(isActive: Bool, layoutHeight: CGFloat? = nil) {
         self.isActive = isActive
@@ -33,10 +33,9 @@ struct TimerView: View {
             guard arguments.indices.contains(index + 1) else { return nil }
             return Double(arguments[index + 1])
         }
-        let initialMinutes = runningMinutes ?? previewMinutes ?? 0
-        _selectedMinutes = State(initialValue: min(Double(TimerRulerPolicy.modernMaximumMinutes), max(0, initialMinutes)))
-        _running = State(initialValue: runningMinutes != nil)
-        _fireDate = State(initialValue: runningMinutes.map { Date().addingTimeInterval(max(0, $0) * 60) })
+        initialPreviewMinutes = (runningMinutes ?? previewMinutes).map {
+            min(Double(TimerRulerPolicy.modernMaximumMinutes), max(0, $0))
+        }
     }
 
     var body: some View {
@@ -45,7 +44,7 @@ struct TimerView: View {
             ZStack(alignment: .top) {
                 TimelineView(.animation(minimumInterval: 1 / 60, paused: !running || !isActive)) { timeline in
                     let remaining = remaining(at: timeline.date)
-                let timerMinutes = (running || remainingWhenPaused > 0) ? remaining / 60 : selectedMinutes
+                let timerMinutes = showsTimerControls ? remaining / 60 : selectedMinutes
                 let displayMinutes = rulerPreviewMinutes ?? timerMinutes
 
                     ZStack(alignment: .top) {
@@ -67,7 +66,7 @@ struct TimerView: View {
                 }
 
                 TimerHeader(
-                    enabled: !running && remainingWhenPaused == 0,
+                    enabled: !showsTimerControls,
                     showsStylePicker: $showsStylePicker
                 )
                 .equatable()
@@ -75,7 +74,8 @@ struct TimerView: View {
                 if showsStylePicker {
                     TimerStylePicker(mode: mode) { selected in
                         storedMode = selected.rawValue
-                        selectedMinutes = 0
+                        timer.setSelectedMinutes(0)
+                        pausedDraft = false
                         showsStylePicker = false
                     } dismiss: {
                         showsStylePicker = false
@@ -92,26 +92,29 @@ struct TimerView: View {
             SmartisanSoundEffects.shared.setLoop("timer_loop", playing: value && running)
         }
         .onDisappear { SmartisanSoundEffects.shared.setLoop("timer_loop", playing: false) }
-        .onAppear { SmartisanSoundEffects.shared.setLoop("timer_loop", playing: running && isActive) }
+        .onAppear {
+            if !appliedPreviewMinutes, timer.session == nil, let initialPreviewMinutes {
+                timer.setSelectedMinutes(initialPreviewMinutes)
+                appliedPreviewMinutes = true
+            }
+            SmartisanSoundEffects.shared.setLoop("timer_loop", playing: running && isActive)
+        }
         .task(id: fireDate) {
             guard running, let target = fireDate else { return }
             let delay = max(0, target.timeIntervalSinceNow)
             if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
             guard !Task.isCancelled, running, fireDate == target else { return }
-            running = false
-            fireDate = nil
-            remainingWhenPaused = 0
-            selectedMinutes = 0
+            timer.finishIfNeeded()
         }
-        .alert("提示", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
-            Button("确定", role: .cancel) { message = nil }
-        } message: { Text(message ?? "") }
+        .alert("提示", isPresented: Binding(get: { timer.message != nil }, set: { if !$0 { timer.message = nil } })) {
+            Button("确定", role: .cancel) { timer.message = nil }
+        } message: { Text(timer.message ?? "") }
     }
 
     private func classicSurface(width: CGFloat, height: CGFloat, remaining: TimeInterval, displayMinutes: Double) -> some View {
         ZStack(alignment: .topTrailing) {
             ClassicPullRingView(
-                minutes: Binding(get: { displayMinutes }, set: { selectedMinutes = $0 }),
+                minutes: Binding(get: { displayMinutes }, set: { timer.setSelectedMinutes($0) }),
                 enabled: isActive,
                 bounceRequest: bounceRequest,
                 onAdjustmentStarted: beginAdjustment,
@@ -124,14 +127,14 @@ struct TimerView: View {
 
             VStack(spacing: 0) {
                 Spacer()
-                Text((running || remainingWhenPaused > 0 ? remaining : selectedMinutes * 60).smartisanTimerText)
+                Text((showsTimerControls ? remaining : selectedMinutes * 60).smartisanTimerText)
                     .font(SmartisanAssets.font(.light, size: 30))
                     .foregroundStyle(ClockTheme.red)
                     .frame(height: 38)
-                    .offset(y: (running || remainingWhenPaused > 0) ? -12 : 0)
-                    .animation(.interpolatingSpring(stiffness: 210, damping: 18), value: running || remainingWhenPaused > 0)
+                    .offset(y: showsTimerControls ? -12 : 0)
+                    .animation(.interpolatingSpring(stiffness: 210, damping: 18), value: showsTimerControls)
 
-                if running || remainingWhenPaused > 0 {
+                if showsTimerControls {
                     HStack(spacing: 22) {
                         Button(action: primaryAction) { Color.clear }
                             .buttonStyle(SmartisanBitmapButtonStyle(
@@ -167,7 +170,7 @@ struct TimerView: View {
 
     private func modernSurface(width: CGFloat, height: CGFloat, remaining: TimeInterval, displayMinutes: Double) -> some View {
         ZStack(alignment: .top) {
-            Text((running || remainingWhenPaused > 0 ? remaining : selectedMinutes * 60).smartisanTimerText)
+            Text((showsTimerControls ? remaining : selectedMinutes * 60).smartisanTimerText)
                 .font(SmartisanAssets.font(.light, size: 36))
                 .foregroundStyle(ClockTheme.red)
                 .position(x: width / 2, y: 492)
@@ -185,13 +188,13 @@ struct TimerView: View {
                     .buttonStyle(SmartisanBitmapButtonStyle(
                         normal: "button_stopwatch_reset_undo.png",
                         size: 40,
-                        enabled: running || remainingWhenPaused > 0
+                        enabled: showsTimerControls
                     ))
                     .frame(width: 40, height: 40)
-                    .disabled(!running && remainingWhenPaused == 0)
+                    .disabled(!showsTimerControls)
 
                 HorizontalTimerRuler(
-                    minutes: Binding(get: { displayMinutes }, set: { selectedMinutes = $0 }),
+                    minutes: Binding(get: { displayMinutes }, set: { timer.setSelectedMinutes($0) }),
                     enabled: true,
                     onAdjustmentStarted: beginAdjustment,
                     onPreview: { rulerPreviewMinutes = $0 },
@@ -205,10 +208,10 @@ struct TimerView: View {
                         pressed: running ? "button_stopwatch_stop_pressed.png" : "button_stopwatch_play_pressed.png",
                         disabled: "button_stopwatch_stop_disable.png",
                         size: 40,
-                        enabled: running || remainingWhenPaused > 0 || selectedMinutes > 0
+                        enabled: showsTimerControls || selectedMinutes > 0
                     ))
                     .frame(width: 40, height: 40)
-                    .disabled(!running && remainingWhenPaused == 0 && selectedMinutes == 0)
+                    .disabled(!showsTimerControls && selectedMinutes == 0)
             }
             .padding(.horizontal, 18)
             .frame(width: width, height: 48)
@@ -218,102 +221,67 @@ struct TimerView: View {
     }
 
     private func remaining(at date: Date) -> TimeInterval {
-        if running, let fireDate { return max(0, fireDate.timeIntervalSince(date)) }
-        return remainingWhenPaused
+        if pausedDraft { return selectedMinutes * 60 }
+        return timer.remaining(at: date)
     }
 
     private func primaryAction() {
         SmartisanHaptics.confirm()
         if running {
-            pendingSchedule?.cancel()
-            remainingWhenPaused = remaining(at: Date())
-            selectedMinutes = remainingWhenPaused / 60
-            running = false
-            fireDate = nil
-            service.cancel(id: alarmID)
+            timer.pause()
+        } else if timer.isPaused {
+            timer.resume()
         } else {
-            let duration = remainingWhenPaused > 0 ? remainingWhenPaused : selectedMinutes * 60
+            let duration = selectedMinutes * 60
+            pausedDraft = false
             start(duration: duration)
         }
     }
 
     private func start(duration: TimeInterval) {
         guard duration > 0 else { return }
-        adjustmentWasPaused = false
-        pendingSchedule?.cancel()
-        service.cancel(id: alarmID)
-        alarmID = UUID()
-        let scheduledID = alarmID
-        fireDate = Date().addingTimeInterval(duration)
-        remainingWhenPaused = 0
-        selectedMinutes = duration / 60
-        running = true
-        pendingSchedule = Task {
-            do { try await service.scheduleTimer(id: scheduledID, duration: duration) }
-            catch {
-                guard !Task.isCancelled, alarmID == scheduledID else { return }
-                running = false
-                fireDate = nil
-                remainingWhenPaused = duration
-                message = error.localizedDescription
-            }
-        }
+        pausedDraft = false
+        timer.start(duration: duration)
     }
 
     private func commitClassicAdjustment(_ minutes: Double) {
         let whole = floor(min(max(minutes, 0), Double(TimerRulerPolicy.classicMaximumMinutes)))
-        selectedMinutes = whole
+        timer.setSelectedMinutes(whole)
         guard whole > 0 else {
-            adjustmentWasPaused = false
+            pausedDraft = false
             return
         }
-        if adjustmentWasPaused {
-            remainingWhenPaused = whole * 60
-            adjustmentWasPaused = false
-        } else {
+        if !pausedDraft {
             start(duration: whole * 60)
         }
     }
 
     private func commitModernAdjustment(_ minutes: Double) {
         let whole = min(max(minutes.rounded(), 0), Double(TimerRulerPolicy.modernMaximumMinutes))
-        selectedMinutes = whole
+        timer.setSelectedMinutes(whole)
         guard whole > 0 else {
-            adjustmentWasPaused = false
+            pausedDraft = false
             return
         }
-        if adjustmentWasPaused {
-            remainingWhenPaused = whole * 60
-            adjustmentWasPaused = false
-        } else {
+        if !pausedDraft {
             start(duration: whole * 60)
         }
     }
 
     private func beginAdjustment() {
-        let paused = !running && remainingWhenPaused > 0
-        let currentDuration: TimeInterval
-        if running {
-            currentDuration = remaining(at: Date())
-        } else if paused {
-            currentDuration = remainingWhenPaused
-        } else {
-            currentDuration = selectedMinutes * 60
-        }
-        pendingSchedule?.cancel()
-        service.cancel(id: alarmID)
-        adjustmentWasPaused = paused
-        running = false
-        fireDate = nil
-        remainingWhenPaused = 0
-        selectedMinutes = max(0, currentDuration / 60)
+        let wasPaused = timer.isPaused || pausedDraft
+        let currentDuration = timer.session == nil
+            ? selectedMinutes * 60
+            : timer.beginAdjustment() ?? remaining(at: Date())
+        pausedDraft = wasPaused
+        timer.setSelectedMinutes(max(0, currentDuration / 60))
     }
 
     private func resetClassic(releaseStrength: Double?) {
         let from = Int(ceil(max(selectedMinutes, remaining(at: Date()) / 60)))
         cancelSession()
         let profile = ClassicResetProfile(minutes: from, releaseStrength: releaseStrength)
-        withAnimation(.easeOut(duration: profile.returnDuration)) { selectedMinutes = 0 }
+        withAnimation(.easeOut(duration: profile.returnDuration)) { timer.setSelectedMinutes(0) }
         guard let bounce = profile.bounce else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + profile.returnDuration) {
             bounceRequest = ClassicBounceRequest(type: bounce, gain: profile.gain)
@@ -322,19 +290,15 @@ struct TimerView: View {
 
     private func resetModern() {
         cancelSession()
-        withAnimation(.easeOut(duration: 0.36)) { selectedMinutes = -0.25 }
+        withAnimation(.easeOut(duration: 0.36)) { timer.setSelectedMinutes(-0.25) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.36) {
-            withAnimation(.easeInOut(duration: 0.18)) { selectedMinutes = 0 }
+            withAnimation(.easeInOut(duration: 0.18)) { timer.setSelectedMinutes(0) }
         }
     }
 
     private func cancelSession() {
-        pendingSchedule?.cancel()
-        service.cancel(id: alarmID)
-        adjustmentWasPaused = false
-        running = false
-        fireDate = nil
-        remainingWhenPaused = 0
+        _ = timer.cancel()
+        pausedDraft = false
     }
 }
 

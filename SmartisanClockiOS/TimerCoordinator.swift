@@ -36,7 +36,9 @@ final class TimerCoordinator: ObservableObject {
         }
     }
 
-    var isRunning: Bool { session?.status == .running }
+    var isRunning: Bool {
+        session?.status == .running || session?.status == .scheduling
+    }
     var isPaused: Bool { session?.status == .paused }
     var fireDate: Date? { isRunning ? session?.fireDate : nil }
     var remainingWhenPaused: TimeInterval { session?.pausedRemaining ?? 0 }
@@ -161,7 +163,7 @@ final class TimerCoordinator: ObservableObject {
     }
 
     func setSelectedMinutes(_ value: Double) {
-        selectedMinutes = max(0, value)
+        selectedMinutes = max(-0.25, value)
     }
 
     func finishIfNeeded(at date: Date = Date()) {
