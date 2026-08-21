@@ -33,6 +33,9 @@
 		A00000000000000000000022 /* ClockAlarmMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* ClockAlarmMetadata.swift */; };
 		A00000000000000000000023 /* AlarmIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* AlarmIntents.swift */; };
 		A00000000000000000000024 /* SmartisanClockLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* SmartisanClockLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A00000000000000000000025 /* small_blank_clock.png in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000024 /* small_blank_clock.png */; };
+		A00000000000000000000026 /* small_minute_hand.png in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* small_minute_hand.png */; };
+		A00000000000000000000027 /* small_minute_hand_shadow.png in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000026 /* small_minute_hand_shadow.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +75,9 @@
 		B00000000000000000000021 /* AlarmLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmLiveActivity.swift; sourceTree = "<group>"; };
 		B00000000000000000000022 /* SmartisanClockLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SmartisanClockLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B00000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B00000000000000000000024 /* small_blank_clock.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_blank_clock.png; path = ../SmartisanClockiOS/SmartisanAssets/small_blank_clock.png; sourceTree = "<group>"; };
+		B00000000000000000000025 /* small_minute_hand.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_minute_hand.png; path = ../SmartisanClockiOS/SmartisanAssets/small_minute_hand.png; sourceTree = "<group>"; };
+		B00000000000000000000026 /* small_minute_hand_shadow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_minute_hand_shadow.png; path = ../SmartisanClockiOS/SmartisanAssets/small_minute_hand_shadow.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -84,7 +90,7 @@
 		D00000000000000000000002 /* SmartisanClockiOS */ = {isa = PBXGroup; children = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, B00000000000000000000006, B00000000000000000000007, B00000000000000000000008, B00000000000000000000009, B0000000000000000000000A, B00000000000000000000014, B00000000000000000000015, B00000000000000000000017, B0000000000000000000000F, B0000000000000000000000B, B00000000000000000000013, B0000000000000000000000E, B00000000000000000000010, B00000000000000000000011, B00000000000000000000012, B0000000000000000000000C); path = SmartisanClockiOS; sourceTree = "<group>"; };
 		D00000000000000000000003 /* Products */ = {isa = PBXGroup; children = (B0000000000000000000000D /* SmartisanClockiOS.app */, B00000000000000000000022 /* SmartisanClockLiveActivity.appex */); name = Products; sourceTree = "<group>"; };
 		D00000000000000000000004 /* Shared */ = {isa = PBXGroup; children = (B00000000000000000000016 /* ClockAlarmMetadata.swift */, B00000000000000000000018 /* AlarmIntents.swift */); path = Shared; sourceTree = "<group>"; };
-		D00000000000000000000005 /* SmartisanClockLiveActivity */ = {isa = PBXGroup; children = (B00000000000000000000020 /* SmartisanClockLiveActivityBundle.swift */, B00000000000000000000021 /* AlarmLiveActivity.swift */, B00000000000000000000023 /* Info.plist */); path = SmartisanClockLiveActivity; sourceTree = "<group>"; };
+		D00000000000000000000005 /* SmartisanClockLiveActivity */ = {isa = PBXGroup; children = (B00000000000000000000020 /* SmartisanClockLiveActivityBundle.swift */, B00000000000000000000021 /* AlarmLiveActivity.swift */, B00000000000000000000024 /* small_blank_clock.png */, B00000000000000000000025 /* small_minute_hand.png */, B00000000000000000000026 /* small_minute_hand_shadow.png */, B00000000000000000000023 /* Info.plist */); path = SmartisanClockLiveActivity; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -98,7 +104,7 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		C00000000000000000000002 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A0000000000000000000000B /* Assets.xcassets in Resources */, A00000000000000000000011 /* AppIconGlass.icon in Resources */, A0000000000000000000000C /* SmartisanAssets in Resources */, A0000000000000000000000E /* timer.wav in Resources */, A0000000000000000000000F /* ruler_ring.wav in Resources */, A00000000000000000000010 /* ruler_back.wav in Resources */); runOnlyForDeploymentPostprocessing = 0; };
-		C00000000000000000000006 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C00000000000000000000006 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000025 /* small_blank_clock.png in Resources */, A00000000000000000000026 /* small_minute_hand.png in Resources */, A00000000000000000000027 /* small_minute_hand_shadow.png in Resources */, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
