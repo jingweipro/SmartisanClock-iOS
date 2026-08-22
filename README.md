@@ -26,6 +26,23 @@ Release 中的 `unsigned.ipa` **没有可直接安装的 Apple 签名**。使用
 
 <p align="center"><sub>世界时钟 · 闹钟 · 机械秒表 · 计时器</sub></p>
 
+## 最新进展（2026-08-22）
+
+本次主分支更新重点改进了计时器的连续性、滑尺操作和系统实时活动：
+
+- 倒计时在 App 退出或被结束后仍由 AlarmKit 继续管理，重新打开时可恢复正确的剩余时间与运行状态。
+- 新增锁屏与灵动岛计时器，支持暂停、继续和停止，并统一为机械表盘、红色数字与拟物按键的视觉语言。
+- 优化水平滑尺跟手性和表盘联动，并将滑尺计时范围限定为 1–60 分钟。
+- 增加计时会话、滑尺规则、URL 操作和模拟器恢复测试，并已在实体 iPhone 安装验证。
+
+<p align="center">
+  <img src="docs/screenshots/05-live-activity-compact.png" width="640" alt="锁屏与灵动岛计时器的灵动岛紧凑状态" />
+</p>
+
+<p align="center"><sub>灵动岛紧凑状态：机械小表盘与实时剩余时间</sub></p>
+
+完整的分类更新内容见 [CHANGELOG.md](CHANGELOG.md)。这些改动已进入主分支，下载页中的 IPA 仍以 Release 标注的版本为准。
+
 ## 系统要求
 
 - iPhone，iOS 26.0 或更高版本

@@ -27,6 +27,10 @@
     figure { margin: 0; width: min(23%, 220px); min-width: 160px; }
     figure img { display: block; width: 100%; border-radius: 18px; box-shadow: 0 8px 26px #0002; }
     figcaption { text-align: center; color: #777; margin-top: 8px; }
+    .update { padding: 22px; background: #fff; border-radius: 18px; line-height: 1.75; }
+    .update h3 { margin: 0 0 8px; }
+    .update ul { margin-bottom: 20px; padding-left: 22px; }
+    .live-preview { display: block; width: min(100%, 800px); margin: 18px auto 8px; border-radius: 22px; box-shadow: 0 8px 26px #0002; }
     .notice { padding: 16px 18px; background: #fff; border-radius: 14px; line-height: 1.7; }
     footer { margin-top: 48px; color: #888; font-size: 14px; }
   </style>
@@ -47,6 +51,17 @@
       <figure><img src="screenshots/03-stopwatch.png" alt="锤子时钟 iOS 机械秒表界面"><figcaption>机械秒表</figcaption></figure>
       <figure><img src="screenshots/04-timer.png" alt="锤子时钟 iOS 计时器界面"><figcaption>计时器</figcaption></figure>
     </div>
+    <h2>最新进展</h2>
+    <section class="update">
+      <h3>2026-08-22 计时器与灵动岛更新</h3>
+      <ul>
+        <li>倒计时可在 App 退出或被结束后继续运行，重新打开时恢复正确状态。</li>
+        <li>新增锁屏和灵动岛实时活动，支持暂停、继续与停止。</li>
+        <li>改善水平滑尺的跟手性与表盘联动，可选范围为 1–60 分钟。</li>
+      </ul>
+      <img class="live-preview" src="screenshots/05-live-activity-compact.png" alt="锤子时钟 iOS 灵动岛计时器紧凑状态">
+      <p><a href="https://github.com/jingweipro/SmartisanClock-iOS/blob/main/CHANGELOG.md">查看完整更新记录</a></p>
+    </section>
     <h2>下载与安装</h2>
     <p class="notice">项目提供源码和未签名 IPA。未签名 IPA 不能直接安装，需要使用自己的 Apple Account 通过 Xcode 或其他自签工具重新签名。<a href="https://github.com/jingweipro/SmartisanClock-iOS/releases/latest">前往 Release 下载</a>。</p>
     <footer>非官方项目，与锤子科技、字节跳动、Smartisan 品牌及其权利人没有隶属、合作、授权或背书关系。</footer>
